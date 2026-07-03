@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, LogOut, Users, MessageCircle, ArrowLeft } from 'lucide-react';
 import io from 'socket.io-client';
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4500';
+
 export default function ChatDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'people'
   const [users, setUsers] = useState([]);
@@ -19,7 +21,7 @@ export default function ChatDashboard({ user, onLogout }) {
   // Fetch conversations (recent chats)
   const fetchConversations = async (silent = false) => {
     try {
-      const res = await fetch('http://localhost:4500/api/messages/conversations', {
+      const res = await fetch(`${apiUrl}/api/messages/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -34,7 +36,7 @@ export default function ChatDashboard({ user, onLogout }) {
   // Fetch all users list
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:4500/api/users', {
+      const res = await fetch(`${apiUrl}/api/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -51,7 +53,7 @@ export default function ChatDashboard({ user, onLogout }) {
     if (!activeChat) return;
     if (!silent) setLoadingMessages(true);
     try {
-      const res = await fetch(`http://localhost:4500/api/messages/${activeChat._id}`, {
+      const res = await fetch(`${apiUrl}/api/messages/${activeChat._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -70,7 +72,7 @@ export default function ChatDashboard({ user, onLogout }) {
     fetchConversations();
     fetchUsers();
 
-    const socket = io('http://localhost:4500', {
+    const socket = io(apiUrl, {
       auth: { token }
     });
     socketRef.current = socket;
@@ -152,7 +154,7 @@ export default function ChatDashboard({ user, onLogout }) {
     }
 
     try {
-      const res = await fetch(`http://localhost:4500/api/messages/${activeChat._id}`, {
+      const res = await fetch(`${apiUrl}/api/messages/${activeChat._id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +188,7 @@ export default function ChatDashboard({ user, onLogout }) {
       });
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      
+
       typingTimeoutRef.current = setTimeout(() => {
         socketRef.current.emit('stop_typing', {
           recipientId: activeChat._id

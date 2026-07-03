@@ -8,8 +8,8 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 4500;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/message_app';
-const JWT_SECRET = process.env.JWT_SECRET || 'messaging_app_secret_key_2026_safe';
+const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Create HTTP server wrapping Express app
 const server = http.createServer(app);
@@ -17,7 +17,7 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173"],
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173", 'https://message-app-frontend-moom.onrender.com/'],
     methods: ["GET", "POST"]
   }
 });
@@ -101,7 +101,7 @@ app.get('/api/health', (req, res) => {
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB successfully');
-    
+
     // Start the HTTP/Socket server
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);

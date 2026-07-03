@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4500';
+
 export default function Auth({ onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
@@ -55,7 +57,7 @@ export default function Auth({ onAuthSuccess }) {
     const payload = isLogin ? { email, password } : { name, email, password };
 
     try {
-      const response = await fetch(`http://localhost:4500${endpoint}`, {
+      const response = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +72,7 @@ export default function Auth({ onAuthSuccess }) {
       }
 
       setSuccess(data.message);
-      
+
       // Save token and user details to localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
