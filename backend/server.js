@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const Group = require('./models/Group');
 
 const app = express();
 const PORT = process.env.PORT || 4500;
@@ -59,6 +60,45 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Relay group typing status to group members in real-time
+  socket.on('group_typing', async (data) => {
+    try {
+      const group = await Group.findById(data.groupId);
+      if (!group) return;
+      group.members.forEach((memberId) => {
+        const idStr = memberId.toString();
+        if (idStr !== userId) {
+          io.to(idStr).emit('group_typing', {
+            groupId: data.groupId,
+            senderId: userId,
+            senderName: data.senderName
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Group typing event error:', err);
+    }
+  });
+
+  // Relay group stop typing status to group members in real-time
+  socket.on('group_stop_typing', async (data) => {
+    try {
+      const group = await Group.findById(data.groupId);
+      if (!group) return;
+      group.members.forEach((memberId) => {
+        const idStr = memberId.toString();
+        if (idStr !== userId) {
+          io.to(idStr).emit('group_stop_typing', {
+            groupId: data.groupId,
+            senderId: userId
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Group stop typing event error:', err);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${userId} (Socket ID: ${socket.id})`);
   });
@@ -77,11 +117,13 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
+const groupRoutes = require('./routes/groups');
 
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Basic health check route
 app.get('/api/health', (req, res) => {

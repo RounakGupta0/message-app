@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
+const Group = require('../models/Group');
 const auth = require('../middleware/auth');
 
 // GET /api/messages/conversations - Get recent conversations list
@@ -52,7 +53,8 @@ router.get('/conversations', auth, async (req, res) => {
           user: {
             _id: '$otherUser._id',
             name: '$otherUser.name',
-            email: '$otherUser.email'
+            email: '$otherUser.email',
+            profilePic: '$otherUser.profilePic'
           },
           lastMessage: {
             content: '$lastMessage.content',
@@ -132,6 +134,79 @@ router.post('/:userId', auth, async (req, res) => {
   } catch (error) {
     console.error('Send message error:', error);
     res.status(500).json({ error: 'Server error sending message.' });
+  }
+});
+
+// DELETE /api/messages/:messageId - Delete a single message
+router.delete('/:messageId', auth, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const currentUserId = req.user.id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found.' });
+    }
+
+    if (message.sender.toString() !== currentUserId) {
+      return res.status(403).json({ error: 'Access denied. You can only delete your own messages.' });
+    }
+
+    await Message.findByIdAndDelete(messageId);
+
+    const io = req.app.get('io');
+    if (io) {
+      if (message.group) {
+        // Broadcast to group members
+        const group = await Group.findById(message.group);
+        if (group) {
+          group.members.forEach(memberId => {
+            io.to(memberId.toString()).emit('message_deleted', { messageId, groupId: message.group });
+          });
+        }
+      } else {
+        // Send to sender and recipient
+        io.to(message.sender.toString()).emit('message_deleted', { messageId, recipientId: message.recipient });
+        io.to(message.recipient.toString()).emit('message_deleted', { messageId, recipientId: message.sender });
+      }
+    }
+
+    res.json({ message: 'Message deleted successfully.' });
+  } catch (error) {
+    console.error('Delete message error:', error);
+    res.status(500).json({ error: 'Server error deleting message.' });
+  }
+});
+
+// DELETE /api/messages/conversation/:userId - Clear direct chat history between current user and target user
+router.delete('/conversation/:userId', auth, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+    const otherUserId = req.params.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
+      return res.status(400).json({ error: 'Invalid user ID.' });
+    }
+
+    // Delete all direct messages between these two users
+    await Message.deleteMany({
+      $or: [
+        { sender: currentUserId, recipient: otherUserId },
+        { sender: otherUserId, recipient: currentUserId }
+      ],
+      group: null
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(currentUserId).emit('chat_cleared', { otherUserId });
+      io.to(otherUserId).emit('chat_cleared', { otherUserId: currentUserId });
+    }
+
+    res.json({ message: 'Chat history cleared successfully.' });
+  } catch (error) {
+    console.error('Clear chat error:', error);
+    res.status(500).json({ error: 'Server error clearing chat history.' });
   }
 });
 

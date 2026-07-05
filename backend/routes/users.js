@@ -16,4 +16,45 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// PUT /api/users/profile-pic - Upload or update profile picture
+router.put('/profile-pic', auth, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+    const { profilePic } = req.body;
+
+    if (!profilePic) {
+      return res.status(400).json({ error: 'Profile picture data is required.' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      currentUserId,
+      { profilePic },
+      { new: true }
+    ).select('-password');
+
+    res.json(user);
+  } catch (error) {
+    console.error('Update profile pic error:', error);
+    res.status(500).json({ error: 'Server error updating profile picture.' });
+  }
+});
+
+// DELETE /api/users/profile-pic - Remove profile picture
+router.delete('/profile-pic', auth, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+
+    const user = await User.findByIdAndUpdate(
+      currentUserId,
+      { profilePic: null },
+      { new: true }
+    ).select('-password');
+
+    res.json(user);
+  } catch (error) {
+    console.error('Delete profile pic error:', error);
+    res.status(500).json({ error: 'Server error removing profile picture.' });
+  }
+});
+
 module.exports = router;

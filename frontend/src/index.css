@@ -951,3 +951,310 @@ body:has(.dashboard-layout) #root {
   gap: 6px;
   animation: fadeIn 0.15s ease-in-out;
 }
+
+/* AVATAR BUTTON AND PICTURE */
+.avatar-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-btn:hover {
+  transform: scale(1.05);
+}
+
+.avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--glass-border);
+}
+
+.avatar-img-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--glass-border);
+}
+
+.avatar-badge-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* PROFILE DROPDOWN MENU */
+.profile-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  width: 220px;
+  box-shadow: 0 10px 25px rgba(3, 47, 48, 0.08);
+  z-index: 100;
+  padding: 8px 0;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.dropdown-user-info {
+  padding: 10px 16px;
+}
+
+.dropdown-user-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.dropdown-user-email {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 6px 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: block;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background: rgba(13, 148, 136, 0.06);
+}
+
+.dropdown-item.clickable {
+  display: block;
+}
+
+.btn-danger-text {
+  color: var(--error-color) !important;
+}
+
+.btn-danger-text:hover {
+  background: rgba(220, 38, 38, 0.08) !important;
+}
+
+.invites-count {
+  background: var(--error-color);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* SEARCH INPUT */
+.search-bar-container {
+  border-bottom: 1px solid rgba(13, 148, 136, 0.04);
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--accent-primary);
+  background: white;
+  box-shadow: 0 0 8px rgba(13, 148, 136, 0.08);
+}
+
+/* SINGLE MESSAGE DELETION */
+.message-bubble-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 60%;
+}
+
+.message-row.sent .message-bubble-container {
+  flex-direction: row;
+}
+
+.message-row.received .message-bubble-container {
+  flex-direction: row-reverse;
+}
+
+.message-bubble-container .message-bubble {
+  max-width: 100%;
+}
+
+.delete-msg-btn {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.message-bubble-container:hover .delete-msg-btn {
+  opacity: 1;
+}
+
+.delete-msg-btn:hover {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--error-color);
+  border-color: rgba(220, 38, 38, 0.2);
+  transform: scale(1.08);
+}
+
+/* CHAT HEADER SETTINGS BTN */
+.chat-header-icon-btn {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.chat-header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.chat-header-icon-btn.btn-danger-text:hover {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--error-color);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+/* INVITE CARD & BTNS */
+.invite-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  transition: all 0.2s;
+}
+
+.invite-btn.accept {
+  background: var(--success-color);
+}
+
+.invite-btn.accept:hover {
+  background: #0b7a70;
+  transform: scale(1.05);
+}
+
+.invite-btn.decline {
+  background: var(--error-color);
+}
+
+.invite-btn.decline:hover {
+  background: #b91c1c;
+  transform: scale(1.05);
+}
+
+/* MEMBER ACTION BTNS */
+.member-action-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.member-action-btn:hover {
+  background: rgba(13, 148, 136, 0.06);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+}
+
+.close-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+/* MODAL MAX HEIGHT FOR SCROLLS */
+.modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.1);
+  border-radius: 10px;
+}
+
