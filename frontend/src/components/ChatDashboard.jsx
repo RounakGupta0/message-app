@@ -58,10 +58,11 @@ export default function ChatDashboard({ user, onLogout }) {
 
   // Fetch messages with the selected active user
   const fetchMessages = async (silent = false) => {
-    if (!activeChat) return;
+    const currentChat = activeChatRef.current;
+    if (!currentChat) return;
     if (!silent) setLoadingMessages(true);
     try {
-      const res = await fetch(`${apiUrl}/api/messages/${activeChat._id}`, {
+      const res = await fetch(`${apiUrl}/api/messages/${currentChat._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -80,12 +81,15 @@ export default function ChatDashboard({ user, onLogout }) {
     fetchConversations();
 
     const socket = io(apiUrl, {
-      auth: { token }
+      auth: { token },
+      transports: ['websocket']
     });
     socketRef.current = socket;
 
     socket.on('connect', () => {
       console.log('Connected to WebSocket server');
+      fetchConversations(true);
+      fetchMessages(true);
     });
 
     socket.on('conversation_update', (data) => {

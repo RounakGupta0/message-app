@@ -16,14 +16,13 @@ const server = http.createServer(app);
 
 // Initialize Socket.io
 const io = new Server(server, {
+  pingInterval: 25000,
+  pingTimeout: 20000,
   cors: {
     origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173", 'https://message-app-frontend-moom.onrender.com'],
     methods: ["GET", "POST"]
   }
 });
-
-// Map to track active user sessions: userId -> socket.id
-const activeUsers = new Map();
 
 // Socket.io JWT handshake authentication middleware
 io.use((socket, next) => {
@@ -42,41 +41,31 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   const userId = socket.userId;
-  activeUsers.set(userId, socket.id);
-  console.log(`User connected: ${userId} (Socket ID: ${socket.id})`);
+  socket.join(userId);
+  console.log(`User connected: ${userId} (Socket ID: ${socket.id}) joined room`);
 
   // Relay typing status to recipient in real-time
   socket.on('typing', (data) => {
-    const recipientSocketId = activeUsers.get(data.recipientId);
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('typing', {
-        senderId: userId,
-        senderName: data.senderName
-      });
-    }
+    io.to(data.recipientId).emit('typing', {
+      senderId: userId,
+      senderName: data.senderName
+    });
   });
 
   // Relay stop typing status to recipient in real-time
   socket.on('stop_typing', (data) => {
-    const recipientSocketId = activeUsers.get(data.recipientId);
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('stop_typing', {
-        senderId: userId
-      });
-    }
+    io.to(data.recipientId).emit('stop_typing', {
+      senderId: userId
+    });
   });
 
   socket.on('disconnect', () => {
-    if (activeUsers.get(userId) === socket.id) {
-      activeUsers.delete(userId);
-    }
-    console.log(`User disconnected: ${userId}`);
+    console.log(`User disconnected: ${userId} (Socket ID: ${socket.id})`);
   });
 });
 
-// Expose io and activeUsers map to router contexts
+// Expose io to router contexts
 app.set('io', io);
-app.set('activeUsers', activeUsers);
 
 // Enable CORS middleware
 app.use(cors());

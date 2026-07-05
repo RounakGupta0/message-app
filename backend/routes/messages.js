@@ -121,21 +121,12 @@ router.post('/:userId', auth, async (req, res) => {
 
     // Emit live WebSocket events if users are online
     const io = req.app.get('io');
-    const activeUsers = req.app.get('activeUsers');
 
-    const recipientSocketId = activeUsers.get(otherUserId);
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('receive_message', newMessage);
-    }
+    io.to(otherUserId).emit('receive_message', newMessage);
 
     // Trigger conversation list reload for both users in real-time
-    const senderSocketId = activeUsers.get(currentUserId);
-    if (senderSocketId) {
-      io.to(senderSocketId).emit('conversation_update', { senderId: currentUserId });
-    }
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('conversation_update', { senderId: currentUserId });
-    }
+    io.to(currentUserId).emit('conversation_update', { senderId: currentUserId });
+    io.to(otherUserId).emit('conversation_update', { senderId: currentUserId });
 
     res.status(201).json(newMessage);
   } catch (error) {
