@@ -131,10 +131,10 @@ router.post('/:userId', auth, async (req, res) => {
     // Trigger conversation list reload for both users in real-time
     const senderSocketId = activeUsers.get(currentUserId);
     if (senderSocketId) {
-      io.to(senderSocketId).emit('conversation_update');
+      io.to(senderSocketId).emit('conversation_update', { senderId: currentUserId });
     }
     if (recipientSocketId) {
-      io.to(recipientSocketId).emit('conversation_update');
+      io.to(recipientSocketId).emit('conversation_update', { senderId: currentUserId });
     }
 
     res.status(201).json(newMessage);

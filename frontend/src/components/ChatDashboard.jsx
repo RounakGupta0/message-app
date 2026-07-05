@@ -16,7 +16,14 @@ export default function ChatDashboard({ user, onLogout }) {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
+  const activeChatRef = useRef(activeChat);
   const token = localStorage.getItem('token');
+
+  // Sync activeChatRef with activeChat state
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   // Fetch conversations (recent chats)
   const fetchConversations = async (silent = false) => {
@@ -70,7 +77,6 @@ export default function ChatDashboard({ user, onLogout }) {
   // Load initial data and establish WebSocket connection
   useEffect(() => {
     fetchConversations();
-    fetchUsers();
 
     const socket = io(apiUrl, {
       auth: { token }
@@ -81,9 +87,64 @@ export default function ChatDashboard({ user, onLogout }) {
       console.log('Connected to WebSocket server');
     });
 
-    socket.on('conversation_update', () => {
+    socket.on('conversation_update', (data) => {
+      // If we initiated this update, we already updated our UI locally
+      if (data && data.senderId === user.id) {
+        return;
+      }
       fetchConversations(true);
     });
+
+    const handleReceiveMessage = (message) => {
+      const currentActiveChat = activeChatRef.current;
+      // Append message if it belongs to the active conversation
+      if (currentActiveChat && (message.sender === currentActiveChat._id || message.recipient === currentActiveChat._id)) {
+        setMessages((prev) => {
+          // Avoid duplicating local-echoed messages
+          if (prev.some(m => m._id === message._id)) return prev;
+          return [...prev, message];
+        });
+      }
+
+      // Proactively update the conversations list locally
+      setConversations((prevConversations) => {
+        const otherUserId = message.sender === user.id ? message.recipient : message.sender;
+        const exists = prevConversations.find(c => c.user._id === otherUserId);
+        if (exists) {
+          const updated = {
+            ...exists,
+            lastMessage: {
+              content: message.content,
+              sender: message.sender,
+              createdAt: message.createdAt
+            }
+          };
+          return [updated, ...prevConversations.filter(c => c.user._id !== otherUserId)];
+        } else {
+          // New conversation: fetch to pull full user details (name, email)
+          fetchConversations(true);
+          return prevConversations;
+        }
+      });
+    };
+
+    const handleTyping = (data) => {
+      const currentActiveChat = activeChatRef.current;
+      if (currentActiveChat && data.senderId === currentActiveChat._id) {
+        setIsRecipientTyping(true);
+      }
+    };
+
+    const handleStopTyping = (data) => {
+      const currentActiveChat = activeChatRef.current;
+      if (currentActiveChat && data.senderId === currentActiveChat._id) {
+        setIsRecipientTyping(false);
+      }
+    };
+
+    socket.on('receive_message', handleReceiveMessage);
+    socket.on('typing', handleTyping);
+    socket.on('stop_typing', handleStopTyping);
 
     socket.on('connect_error', (err) => {
       console.error('Socket connection error:', err.message);
@@ -94,45 +155,11 @@ export default function ChatDashboard({ user, onLogout }) {
     };
   }, []);
 
-  // Fetch direct messages on chat selection and listen for new ones in real-time
+  // Fetch direct messages on chat selection
   useEffect(() => {
     fetchMessages();
     setIsRecipientTyping(false); // Reset typing status when chat contact switches
-
-    if (!socketRef.current) return;
-
-    const handleReceiveMessage = (message) => {
-      // Append message if it belongs to the active conversation
-      if (activeChat && (message.sender === activeChat._id || message.recipient === activeChat._id)) {
-        setMessages((prev) => {
-          // Avoid duplicating local-echoed messages
-          if (prev.some(m => m._id === message._id)) return prev;
-          return [...prev, message];
-        });
-      }
-    };
-
-    const handleTyping = (data) => {
-      if (activeChat && data.senderId === activeChat._id) {
-        setIsRecipientTyping(true);
-      }
-    };
-
-    const handleStopTyping = (data) => {
-      if (activeChat && data.senderId === activeChat._id) {
-        setIsRecipientTyping(false);
-      }
-    };
-
-    socketRef.current.on('receive_message', handleReceiveMessage);
-    socketRef.current.on('typing', handleTyping);
-    socketRef.current.on('stop_typing', handleStopTyping);
-
-    return () => {
-      socketRef.current.off('receive_message', handleReceiveMessage);
-      socketRef.current.off('typing', handleTyping);
-      socketRef.current.off('stop_typing', handleStopTyping);
-    };
+    isTypingRef.current = false;
   }, [activeChat]);
 
   // Scroll to bottom when message log updates
@@ -149,9 +176,49 @@ export default function ChatDashboard({ user, onLogout }) {
 
     // Clear typing timeout and emit stop_typing immediately
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    isTypingRef.current = false;
     if (socketRef.current) {
       socketRef.current.emit('stop_typing', { recipientId: activeChat._id });
     }
+
+    // Optimistically update conversations list in sidebar to make UI instantaneous
+    const tempMessageId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      _id: tempMessageId,
+      sender: user.id,
+      recipient: activeChat._id,
+      content: messageText,
+      createdAt: new Date().toISOString()
+    };
+
+    // Show message in stream immediately
+    setMessages((prev) => [...prev, optimisticMessage]);
+
+    // Update conversation order and last message in sidebar immediately
+    setConversations((prevConversations) => {
+      const exists = prevConversations.find(c => c.user._id === activeChat._id);
+      if (exists) {
+        const updated = {
+          ...exists,
+          lastMessage: {
+            content: messageText,
+            sender: user.id,
+            createdAt: optimisticMessage.createdAt
+          }
+        };
+        return [updated, ...prevConversations.filter(c => c.user._id !== activeChat._id)];
+      } else {
+        const newConv = {
+          user: activeChat,
+          lastMessage: {
+            content: messageText,
+            sender: user.id,
+            createdAt: optimisticMessage.createdAt
+          }
+        };
+        return [newConv, ...prevConversations];
+      }
+    });
 
     try {
       const res = await fetch(`${apiUrl}/api/messages/${activeChat._id}`, {
@@ -165,13 +232,19 @@ export default function ChatDashboard({ user, onLogout }) {
 
       if (res.ok) {
         const data = await res.json();
-        // Append sent message locally so UI is instantaneous
-        setMessages((prev) => [...prev, data]);
-        // Refresh conversations to update sidebar order and preview text
+        // Replace optimistic message with the actual message from database
+        setMessages((prev) => prev.map(m => m._id === tempMessageId ? data : m));
+      } else {
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter(m => m._id !== tempMessageId));
+        // Force refresh conversation list on error
         fetchConversations(true);
       }
     } catch (err) {
       console.error('Error sending message:', err);
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter(m => m._id !== tempMessageId));
+      fetchConversations(true);
     }
   };
 
@@ -182,10 +255,14 @@ export default function ChatDashboard({ user, onLogout }) {
     if (!socketRef.current || !activeChat) return;
 
     if (val.trim().length > 0) {
-      socketRef.current.emit('typing', {
-        senderName: user.name,
-        recipientId: activeChat._id
-      });
+      // Throttle typing emissions: only emit 'typing' if we aren't already typing
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        socketRef.current.emit('typing', {
+          senderName: user.name,
+          recipientId: activeChat._id
+        });
+      }
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
@@ -193,12 +270,14 @@ export default function ChatDashboard({ user, onLogout }) {
         socketRef.current.emit('stop_typing', {
           recipientId: activeChat._id
         });
+        isTypingRef.current = false;
       }, 2000);
     } else {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       socketRef.current.emit('stop_typing', {
         recipientId: activeChat._id
       });
+      isTypingRef.current = false;
     }
   };
 
@@ -230,7 +309,6 @@ export default function ChatDashboard({ user, onLogout }) {
             className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('chats');
-              fetchConversations();
             }}
           >
             Chats
@@ -239,7 +317,9 @@ export default function ChatDashboard({ user, onLogout }) {
             className={`tab-btn ${activeTab === 'people' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('people');
-              fetchUsers();
+              if (users.length === 0) {
+                fetchUsers();
+              }
             }}
           >
             People

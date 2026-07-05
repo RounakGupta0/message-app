@@ -67,7 +67,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    activeUsers.delete(userId);
+    if (activeUsers.get(userId) === socket.id) {
+      activeUsers.delete(userId);
+    }
     console.log(`User disconnected: ${userId}`);
   });
 });
