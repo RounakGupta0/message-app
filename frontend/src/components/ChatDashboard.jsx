@@ -13,6 +13,7 @@ export default function ChatDashboard({ user, onLogout }) {
   const [newMessage, setNewMessage] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isRecipientTyping, setIsRecipientTyping] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -298,7 +299,7 @@ export default function ChatDashboard({ user, onLogout }) {
       <div className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-title">SecureChat</div>
-          <button className="logout-icon-btn" onClick={onLogout} title="Sign Out">
+          <button className="logout-icon-btn" onClick={() => setShowLogoutConfirm(true)} title="Sign Out">
             <LogOut size={18} />
           </button>
         </div>
@@ -439,18 +440,20 @@ export default function ChatDashboard({ user, onLogout }) {
                   </div>
                 ))
               )}
-              {isRecipientTyping && (
-                <div className="typing-indicator">
-                  <span>{activeChat.name} is typing</span>
-                  <div className="typing-dots">
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Typing Indicator Bar (Anchor above input area) */}
+            {isRecipientTyping && (
+              <div className="typing-indicator-bar">
+                <span>{activeChat.name} is typing</span>
+                <div className="typing-dots">
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                </div>
+              </div>
+            )}
 
             {/* Input Form Panel */}
             <div className="chat-input-area">
@@ -477,6 +480,24 @@ export default function ChatDashboard({ user, onLogout }) {
           </div>
         )}
       </div>
+
+      {/* Custom Sign-Out Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Confirm Sign Out</h3>
+            <p>Are you sure you want to sign out of SecureChat?</p>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowLogoutConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn-danger" onClick={onLogout}>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
